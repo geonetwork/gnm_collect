@@ -26,20 +26,28 @@ const (
 	flush
 	tick
 )
-
+type SysConfig struct {
+	UrlStem, Username, Password string
+}
 type defaultSystem struct {
+	config SysConfig
 	signals chan SystemSignal
 	client  http.Client
 	reports []Report
 }
 
-func CreateSystem(reports ...Report) defaultSystem {
+func CreateSystem(config SysConfig, reportFactories ...ReportFactory) defaultSystem {
 	options := cookiejar.Options{}
 	jar, err := cookiejar.New(&options)
 	if err != nil {
 		log.Fatal(err)
 	}
+	reports := make([]Report, len(reportFactories))
+	for i, fac := range reportFactories {
+		reports[i] = fac()
+	}
 	system := defaultSystem{
+		config: config,
 		reports: reports,
 		signals: make(chan SystemSignal),
 		client: http.Client{Jar: jar}}
@@ -57,24 +65,26 @@ func loop(signals chan <- SystemSignal) {
 }
 
 func (sys defaultSystem) signalTerm() {
+	fmt.Printf("Finalizing reports and shutting down...\n")
 	sys.signals <- term
 }
 func (sys defaultSystem) signalFlush() {
+	fmt.Printf("Saving/Flushing Reports to disk\n")
 	sys.signals <- flush
 }
 func (sys defaultSystem) Run() {
 
-	host := "http://tc-geocat.dev.bgdi.ch/geonetwork"
+	urlStem := sys.config.UrlStem
 
 	log.Printf("Start Login \n")
-	values := url.Values{"username":[]string{"testjesse"}, "password":[]string{"testjesse"}}
+	values := url.Values{"username":[]string{sys.config.Username}, "password":[]string{sys.config.Password}}
 
-	resp, _ := sys.client.PostForm(host+"/j_spring_security_check", values)
+	resp, _ := sys.client.PostForm(urlStem+"/j_spring_security_check", values)
 
 	log.Printf("Login response: %q '%v': \n\n", resp.Status, resp.StatusCode)
 	if resp.StatusCode > 300 {
 		loc, _ := resp.Location()
-		if loc == nil && !strings.Contains(loc.Path, "home") {
+		if loc == nil || !strings.Contains(loc.Path, "home") {
 			log.Printf("Error %v", loc.Path)
 			log.Fatalf("Error logging in: %q: '%v'\n", resp.Status, resp.StatusCode)
 		}
@@ -87,33 +97,44 @@ func (sys defaultSystem) Run() {
 		case term:
 			goto shutdown
 		case flush:
-			fmt.Printf("Not yet implemented")
+			sys.save()
 		case tick:
+			resp, _ = sys.client.Get(sys.config.UrlStem+"/monitor/metrics")
+			log.Printf("Metrics response: %q '%v'\n", resp.Status, resp.StatusCode)
+			if resp.StatusCode > 300 {
+				log.Fatalf("Error obtaining metrics in: %q: '%v'\n", resp.Status, resp.StatusCode)
+			}
 
+			data, _ := ioutil.ReadAll(resp.Body)
+			var jsonData map[string]interface{}
+
+			err := json.Unmarshal(data, &jsonData)
+
+			if err != nil {
+				msg := "Metrics response was not valid json, this is likely because the login username/password are incorrect. %v\n\n"
+				fmt.Printf(msg, "")
+				log.Fatalf(msg, err.Error())
+			}
+			metrics := Json{jsonData}
+
+
+			for _, report := range sys.reports {
+				report.Update(x, metrics)
+			}
+
+			x++
 		}
-		resp, _ = sys.client.Get(host+"/monitor/metrics")
-		log.Printf("Metrics response: %q '%v'\n", resp.Status, resp.StatusCode)
-		if resp.StatusCode > 300 {
-			log.Fatalf("Error obtaining metrics in: %q: '%v'\n", resp.Status, resp.StatusCode)
-		}
-
-		data, _ := ioutil.ReadAll(resp.Body)
-		var jsonData map[string]interface{}
-
-		json.Unmarshal(data, &jsonData)
-
-
-		metrics := Json{jsonData}
-
-		for _, report := range sys.reports {
-			report.Update(x, metrics)
-		}
-
-		x++
 	}
 
 	shutdown:
+		sys.save()
+
+	fmt.Printf("\nSystem has Cleanly shutdown\n\n[DONE]\n")
+}
+
+func (sys defaultSystem) save() {
 	for _, report := range sys.reports {
 		report.Save()
 	}
+	fmt.Printf("Reports have been written to disk\n")
 }

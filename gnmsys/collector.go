@@ -4,6 +4,7 @@ import (
 	"github.com/gonum/plot/plotter"
 	"log"
 )
+type CollectorFactory func() Collector
 
 type Collector interface {
 	Name() string
@@ -17,11 +18,15 @@ type FloatCollector struct {
 	xys            plotter.XYs
 }
 
-func NewFloatCollector(name string, jsonPath ...string) Collector {
-	return &FloatCollector{
-		name: name,
-		jsonPath: jsonPath,
-		xys: plotter.XYs{}}
+func NewFloatCollector(name string, jsonPath ...string) CollectorFactory {
+	fac := func() Collector {
+		return &FloatCollector{
+			name: name,
+			jsonPath: jsonPath,
+			xys: plotter.XYs{}}
+	}
+
+	return fac
 }
 
 func (c *FloatCollector) AddSample(time int64, metrics Json) {

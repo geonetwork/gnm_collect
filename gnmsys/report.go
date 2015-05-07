@@ -5,6 +5,8 @@ import (
 	"github.com/gonum/plot/vg"
 )
 
+type PlotFactory func() *plot.Plot
+
 type Report interface {
 	Update(time int64, metrics Json)
 	Save()
@@ -13,12 +15,12 @@ type Report interface {
 type LineGraphReport struct {
 	collectors []Collector
 	name string
-	report *plot.Plot
+	report PlotFactory
 	width, height vg.Length
 }
 
 func NewLineGraphReport(name string,
-						report *plot.Plot,
+						report PlotFactory,
 						width, height vg.Length,
 						collectors ...Collector) LineGraphReport {
 	return LineGraphReport{collectors: collectors, name: name, report: report, width:width, height:height}
@@ -31,14 +33,15 @@ func (r LineGraphReport) Update(time int64, metrics Json) {
 }
 
 func (r LineGraphReport) Save() {
+	report := r.report()
 	for _, coll := range r.collectors {
-		err := plotutil.AddLinePoints(r.report, coll.Name(), coll.GetXYs())
+		err := plotutil.AddLinePoints(report, coll.Name(), coll.GetXYs())
 		if err != nil {
 			panic(err)
 		}
 	}
 
-	if err := r.report.Save(r.width, r.height, r.name + ".png"); err != nil {
+	if err := report.Save(r.width, r.height, r.name + ".png"); err != nil {
 		panic(err)
 	}
 }

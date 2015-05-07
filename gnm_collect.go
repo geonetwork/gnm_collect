@@ -4,7 +4,6 @@ import (
 	"gnm_collect/gnmsys"
 	"os"
 	"log"
-	"github.com/gonum/plot"
 	"github.com/gonum/plot/vg"
 )
 
@@ -15,9 +14,10 @@ type Listener interface {
 func main() {
 	configureLogs()
 
+	config := loadSystemConfig()
 	reports := loadReports()
 
-	sys := gnmsys.CreateSystem(reports...)
+	sys := gnmsys.CreateSystem(config, reports...)
 	listener := gnmsys.CliListener{sys}
 
 	go listener.Start()
@@ -25,20 +25,35 @@ func main() {
 	sys.Run()
 }
 
-func loadReports() []gnmsys.Report {
-	p, err := plot.New()
-	if err != nil {
-		panic(err)
-	}
+func loadSystemConfig() gnmsys.SysConfig {
+	return gnmsys.SysConfig{
+		UrlStem: "http://tc-geocat.dev.bgdi.ch/geonetwork",
+		Username: "testjesse",
+		Password: "testjesse"}
+}
 
-	p.Title.Text = "Metrics Trend"
-	p.X.Label.Text = "X"
-	p.Y.Label.Text = "Y"
-	report := gnmsys.NewLineGraphReport("test", p, 12 * vg.Inch, 10 * vg.Inch,
-		gnmsys.NewFloatCollector("Total Used Mem", "jvm", "memory", "totalUsed"),
-		gnmsys.NewFloatCollector("File Descriptor Usage", "jvm", "fd_usage"))
-
-	return []gnmsys.Report{report}
+func loadReports() []gnmsys.ReportFactory {
+	return [] gnmsys.ReportFactory{
+		gnmsys.LineReportFactoryBuilder{
+			Title: "Memory",
+			Filename: "memory",
+			YAxis: "Bytes",
+			X: 12 * vg.Inch,
+			Y: 5 * vg.Inch,
+			Collectors: []gnmsys.CollectorFactory{
+				gnmsys.NewFloatCollector("Max", "jvm", "memory", "totalMax"),
+				gnmsys.NewFloatCollector("Total Used", "jvm", "memory", "totalUsed"),
+				gnmsys.NewFloatCollector("Heap Used", "jvm", "memory", "heapUsed")}}.ToRequestFactory(),
+		gnmsys.LineReportFactoryBuilder{
+			Title: "Resource Usage (%)",
+			Filename: "resource_usage",
+			YAxis: "%",
+			X: 12 * vg.Inch,
+			Y: 5 * vg.Inch,
+			Collectors: []gnmsys.CollectorFactory{
+				gnmsys.NewFloatCollector("Non Heap Mem Used", "jvm", "memory", "non_heap_usage"),
+				gnmsys.NewFloatCollector("Heap Mem Used", "jvm", "memory", "heap_usage"),
+				gnmsys.NewFloatCollector("File Descriptor Usage", "jvm", "fd_usage")}}.ToRequestFactory()}
 }
 
 func configureLogs() {

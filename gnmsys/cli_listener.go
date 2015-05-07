@@ -33,7 +33,9 @@ func waitForLF(Sys System) {
 			fmt.Printf(`The following are the supported commands:
 
 q: Signal to the system to finish last poll, flush reports to disk, and terminate application
-f: Signal to the system to flush reports to disk`)
+f: Signal to the system to flush reports to disk
+
+`)
 		}
 	}
 
