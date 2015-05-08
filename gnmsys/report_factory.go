@@ -4,7 +4,7 @@ import (
 	"github.com/gonum/plot"
 	"time"
 	"log"
-	"gnm_collect/gnmsys/unit"
+	"github.com/geonetwork/gnm_collect/gnmsys/unit"
 )
 
 type SampleConfig struct {

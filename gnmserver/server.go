@@ -2,7 +2,7 @@ package gnmserver
 import (
 	"net/http"
 	"fmt"
-	"gnm_collect/gnmsys"
+	"github.com/geonetwork/gnm_collect/gnmsys"
 	"bytes"
 	"regexp"
 	"os"

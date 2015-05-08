@@ -1,7 +1,7 @@
 package main
 
 import (
-	"gnm_collect/gnmsys"
+	"github.com/geonetwork/gnm_collect/gnmsys"
 	"os"
 	"log"
 	"github.com/gonum/plot/vg"
@@ -11,7 +11,7 @@ import (
 	"io/ioutil"
 	"fmt"
 	"net/http"
-	"gnm_collect/gnmserver"
+	"github.com/geonetwork/gnm_collect/gnmserver"
 )
 
 type Listener interface {

@@ -3,7 +3,7 @@ package tests
 import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"gnm_collect/gnmsys"
+	"github.com/geonetwork/gnm_collect/gnmsys"
 	"log"
 	"io/ioutil"
 )
