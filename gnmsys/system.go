@@ -198,14 +198,12 @@ func (sys defaultSystem) pollMetrics(state *systemState) {
 	}
 
 	if timeToWriteGraphs(requestTime, state.startTime) {
-		println("saving")
 		sys.save(state.startTime.Format(timeFmt))
 	}
 }
 
 func timeToWriteGraphs(requestTime int64, startTime time.Time) bool {
 	timeDiff := (time.Now().Second() - startTime.Second())
-	println(requestTime, timeDiff)
 	return requestTime > 60 && timeDiff == 0
 }
 func timeToUpdate(timeSeconds int64, report Report) bool {
