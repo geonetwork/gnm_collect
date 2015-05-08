@@ -13,13 +13,18 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"io"
 )
 
 type System interface {
 	// function that will signal to the system to clean up and shutdown
-	signalTerm()
+	SignalTerm()
 	// function that will write the reports to disk
-	signalFlush()
+	SignalFlush()
+	// List all the Reports available
+	GetReports() []Report
+	// Get the output file of the report
+	GetReportFile(report Report) string
 }
 
 type SystemSignal int
@@ -84,11 +89,24 @@ func loop(signals chan <- SystemSignal) {
 	}
 }
 
-func (sys defaultSystem) signalTerm() {
+func (sys defaultSystem) GetReportFile(report Report) string {
+	var catDirName string
+	for _, sampConf := range sys.config.SampleConfigs {
+		if sampConf.Name == report.GetCategory() {
+			catDirName = sampConf.DirName
+			break;
+		}
+	}
+	return filepath.Join(sys.config.OutputDir, catDirName, report.GetFileName())
+}
+func (sys defaultSystem) GetReports() []Report {
+	return sys.reports
+}
+func (sys defaultSystem) SignalTerm() {
 	fmt.Printf("Finalizing reports and shutting down...\n")
 	sys.signals <- term
 }
-func (sys defaultSystem) signalFlush() {
+func (sys defaultSystem) SignalFlush() {
 	fmt.Printf("Saving/Flushing Reports to disk\n")
 	sys.signals <- flush
 }
@@ -107,7 +125,6 @@ func (state *systemState) initialize() {
 	}
 }
 func (sys defaultSystem) Run() {
-
 	state := &systemState{
 		urlStem: sys.config.UrlStem,
 		loginCredentials: url.Values{"username":[]string{sys.config.Username}, "password":[]string{sys.config.Password}},
@@ -139,8 +156,9 @@ func (sys defaultSystem) pollMetrics(state *systemState) {
 	}()
 
 	if (state.mustLogin) {
-		log.Printf("Start Login \n")
-		resp, _ := sys.client.PostForm(state.urlStem+"/j_spring_security_check", state.loginCredentials)
+		loginUrl := state.urlStem+"/j_spring_security_check"
+		log.Printf("Start Login: %s \n", loginUrl)
+		resp, _ := sys.client.PostForm(loginUrl, state.loginCredentials)
 
 		log.Printf("Login response: %q '%v': \n\n", resp.Status, resp.StatusCode)
 		state.mustLogin = false
@@ -154,7 +172,9 @@ func (sys defaultSystem) pollMetrics(state *systemState) {
 	state.initialize()
 
 	requestTime := time.Now().Unix() - state.startTime.Unix()
-	resp, _ := sys.client.Get(sys.config.UrlStem+"/monitor/metrics")
+	metricsUrl := sys.config.UrlStem+"/monitor/metrics"
+	log.Printf("Making Metrics request %s", metricsUrl)
+	resp, _ := sys.client.Get(metricsUrl)
 	log.Printf("Metrics response: %q '%v'\n", resp.Status, resp.StatusCode)
 	if resp.StatusCode > 300 {
 		log.Panicf("Error obtaining metrics in: %q: '%v'\n", resp.Status, resp.StatusCode)
@@ -178,12 +198,14 @@ func (sys defaultSystem) pollMetrics(state *systemState) {
 	}
 
 	if timeToWriteGraphs(requestTime, state.startTime) {
+		println("saving")
 		sys.save(state.startTime.Format(timeFmt))
 	}
 }
 
 func timeToWriteGraphs(requestTime int64, startTime time.Time) bool {
 	timeDiff := (time.Now().Second() - startTime.Second())
+	println(requestTime, timeDiff)
 	return requestTime > 60 && timeDiff == 0
 }
 func timeToUpdate(timeSeconds int64, report Report) bool {
@@ -197,8 +219,41 @@ func (sys defaultSystem) save(titleModifier string) {
 	for _, report := range sys.reports {
 		report.Save(titleModifier, tmpDir)
 	}
-	os.RemoveAll(sys.config.OutputDir)
-	os.Rename(tmpDir, sys.config.OutputDir)
-	outputDir, _ := filepath.Abs(sys.config.OutputDir)
-	fmt.Printf("Reports have been written to disk: '%s'\n", outputDir)
+
+	filepath.Walk(tmpDir, func(file string, info os.FileInfo, err error) error {
+		if err == nil && !info.IsDir() {
+			rel, err := filepath.Rel(tmpDir, file)
+			if err == nil {
+				dest := path.Join(sys.config.OutputDir, rel)
+				os.Remove(dest)
+				mustCopy := true
+				if _, err := os.Stat(dest); os.IsNotExist(err) {
+					os.MkdirAll(filepath.Dir(dest), os.ModeDir)
+					err = os.Rename(file, dest)
+					log.Printf("Moved %s to %s\n", file, dest)
+					if err == nil {
+						mustCopy = false
+					}
+				}
+				if mustCopy {
+					copy(file, dest)
+					log.Printf("Copied %s to %s\n", file, dest)
+					os.Remove(file)
+				}
+			}
+		}
+		return nil
+	})
+}
+
+func copy (source, dest string) {
+	sFile, err := os.Open(source)
+	if err != nil {
+		defer sFile.Close()
+		dFile, err := os.Open(dest)
+		if err != nil {
+			defer dFile.Close()
+			io.Copy(dFile, sFile)
+		}
+	}
 }

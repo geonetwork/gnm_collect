@@ -19,18 +19,18 @@ func waitForLF(Sys System) {
 
 		c, err := in.ReadByte()
 		if err != nil {
-			Sys.signalTerm()
+			Sys.SignalTerm()
 			return
 		}
 
 		switch c {
 		case 'q':
-			Sys.signalTerm()
+			Sys.SignalTerm()
 			return
 		case 'f':
-			Sys.signalFlush()
+			Sys.SignalFlush()
 		case 's':
-			Sys.signalFlush()
+			Sys.SignalFlush()
 		default:
 			fmt.Printf(`The following are the supported commands:
 

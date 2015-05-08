@@ -6,19 +6,48 @@ import (
 	"log"
 	"github.com/gonum/plot/vg"
 	"time"
+	"flag"
+	"io"
+	"io/ioutil"
+	"fmt"
+	"net/http"
+	"gnm_collect/gnmserver"
 )
 
 type Listener interface {
 	start()
 }
 
+var targetServer, username, password, out string
+var port = flag.Int("port", 10100, "The port to start the http server on")
+var logging = flag.Bool("logging", false, "Set to true to enable logging")
 func main() {
-	f, err := os.OpenFile("gnm_collect.log", os.O_RDWR | os.O_CREATE | os.O_APPEND, 0666)
-	if err != nil {
-		log.Fatalf("error opening file: %v", err)
+	flag.StringVar(&targetServer, "target", "http://localhost:8080", "The url of the server to test.  Default [http://localhost:8080/geonetwork")
+	flag.StringVar(&username, "user", "", "The user name of a user that has Monitor privileges on the target server")
+	flag.StringVar(&password, "pass", "", "The user's password")
+	flag.StringVar(&out, "out", "./reports", "The directory to write the reports to.")
+	flag.Parse()
+	_, err := http.Get(fmt.Sprintf("http://localhost:%d/status", *port))
+
+	if err == nil {
+		fmt.Printf("Monitoring server is already running\n")
+		os.Exit(0)
 	}
-	defer f.Close()
-	log.SetOutput(f)
+
+	var logOut io.Writer = ioutil.Discard
+	if *logging {
+		f, err := os.OpenFile("gnm_collect.log", os.O_RDWR | os.O_CREATE | os.O_APPEND, 0666)
+		if err != nil {
+			log.Fatalf("error opening file: %v", err)
+		}
+		defer f.Close()
+		logOut = f
+	}
+	log.SetOutput(logOut)
+
+	if targetServer[len(targetServer) - 1] == '/' {
+		targetServer = targetServer[:len(targetServer) - 1]
+	}
 
 	config := loadSystemConfig()
 	reports := loadReports()
@@ -28,15 +57,26 @@ func main() {
 
 	go listener.Start()
 
+	server := gnmserver.Server{
+		Port: *port,
+		Config: config,
+		Sys: &sys}
+	go server.Start()
 	sys.Run()
 }
 
+
 func loadSystemConfig() gnmsys.SysConfig {
+	if username == "" || password == "" {
+		fmt.Fprintf(os.Stderr, "-user and -pass are required\n")
+		flag.Usage()
+		os.Exit(1)
+	}
 	return gnmsys.SysConfig{
-		UrlStem: "http://tc-geocat.dev.bgdi.ch/geonetwork",
-		Username: "testjesse",
-		Password: "testjesse",
-		OutputDir: "./reports",
+		UrlStem: targetServer,
+		Username: username,
+		Password: password,
+		OutputDir: out,
 		SampleConfigs: []gnmsys.SampleConfig{
 			gnmsys.SampleConfig{Name: "Last Five Minutes", DirName: "five_minutes", MaxSamples: 5 * 60, UpdateInterval: time.Second},
 			gnmsys.SampleConfig{Name: "Last Five Hours", DirName: "five_hours", MaxSamples: 5 * 60, UpdateInterval: time.Minute},

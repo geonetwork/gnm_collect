@@ -12,6 +12,9 @@ import (
 type PlotFactory func() *plot.Plot
 
 type Report interface {
+	GetCategory() string
+	GetName() string
+	GetFileName() string
 	GetUpdateInterval() time.Duration
 	Update(timeSeconds int64, metrics Json)
 	Save(titleModifier string, reportDir string)
@@ -32,7 +35,15 @@ sampleConfig SampleConfig,
 collectors ...Collector) LineGraphReport {
 	return LineGraphReport{collectors: collectors, name: name, report: report, width:width, height:height, sampleConfig: sampleConfig}
 }
-
+func (r LineGraphReport) GetCategory() string {
+	return r.sampleConfig.Name
+}
+func (r LineGraphReport) GetName() string {
+	return r.name
+}
+func (r LineGraphReport) GetFileName() string {
+	return r.name + ".png"
+}
 func (r LineGraphReport) Update(timeSeconds int64, metrics Json) {
 	for _, coll := range r.collectors {
 		coll.AddSample(r.sampleConfig.Unit().ConvertSeconds(timeSeconds), metrics)
@@ -61,7 +72,7 @@ func (r LineGraphReport) Save(titleModifier string, reportDir string) {
 	if (r.sampleConfig.DirName != "") {
 		os.MkdirAll(outDir, os.ModeDir)
 	}
-	outputFile := path.Join(outDir, r.name) + ".png"
+	outputFile := path.Join(outDir, r.GetFileName())
 	log.Printf("Saving %q to %q", r.name, outputFile)
 	if err := report.Save(r.width, r.height, outputFile); err != nil {
 		panic(err)
