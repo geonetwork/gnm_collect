@@ -122,6 +122,7 @@ func (state *systemState) initialize() {
 	if !state.initializationComplete {
 		state.initializationComplete = true
 		state.startTime = time.Now()
+		fmt.Println("System has started")
 	}
 }
 func (sys defaultSystem) Run() {

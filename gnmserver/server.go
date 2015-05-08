@@ -167,5 +167,6 @@ func (s Server) Start() {
 	http.HandleFunc("/report/", s.report)
 	http.HandleFunc("/index.html", s.index)
 	http.HandleFunc("/", s.index)
+	fmt.Printf("gnm_collect Http Server is waiting on http://localhost:%d/index.html\n", s.Port)
 	http.ListenAndServe(fmt.Sprintf(":%d", s.Port), nil)
 }
