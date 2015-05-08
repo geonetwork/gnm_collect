@@ -40,7 +40,7 @@ func loadReports() []gnmsys.ReportFactory {
 			YAxis: "Bytes",
 			X: 12 * vg.Inch,
 			Y: 5 * vg.Inch,
-			Collectors: []gnmsys.CollectorFactory{
+			CollectorFactories: []gnmsys.CollectorFactory{
 				gnmsys.NewFloatCollector("Max", "jvm", "memory", "totalMax"),
 				gnmsys.NewFloatCollector("Total Used", "jvm", "memory", "totalUsed"),
 				gnmsys.NewFloatCollector("Heap Used", "jvm", "memory", "heapUsed")}}.ToRequestFactory(),
@@ -50,7 +50,7 @@ func loadReports() []gnmsys.ReportFactory {
 			YAxis: "%",
 			X: 12 * vg.Inch,
 			Y: 5 * vg.Inch,
-			Collectors: []gnmsys.CollectorFactory{
+			CollectorFactories: []gnmsys.CollectorFactory{
 				gnmsys.NewFloatCollector("Non Heap Mem Used", "jvm", "memory", "non_heap_usage"),
 				gnmsys.NewFloatCollector("Heap Mem Used", "jvm", "memory", "heap_usage"),
 				gnmsys.NewFloatCollector("File Descriptor Usage", "jvm", "fd_usage")}}.ToRequestFactory()}

@@ -4,12 +4,12 @@ import (
 	"github.com/gonum/plot"
 )
 
-type ReportFactory func() Report
+type ReportFactory func(maxSamples int) Report
 
 type LineReportFactoryBuilder struct {
 	Title, YAxis, Filename string
 	X, Y vg.Length
-	Collectors []CollectorFactory
+	CollectorFactories []CollectorFactory
 }
 func (b LineReportFactoryBuilder) ToRequestFactory() ReportFactory {
 	newPlot := func() *plot.Plot {
@@ -23,10 +23,10 @@ func (b LineReportFactoryBuilder) ToRequestFactory() ReportFactory {
 		return p
 	}
 
-	return func() Report {
-		collectors := make([]Collector, len(b.Collectors))
-		for i, c := range b.Collectors {
-			collectors[i] = c()
+	return func(maxSamples int) Report {
+		collectors := make([]Collector, len(b.CollectorFactories))
+		for i, cFactory := range b.CollectorFactories {
+			collectors[i] = cFactory(maxSamples)
 		}
 		return NewLineGraphReport(b.Filename, newPlot, b.X, b.Y, collectors...)
 	}

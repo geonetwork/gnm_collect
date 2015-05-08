@@ -44,7 +44,7 @@ func CreateSystem(config SysConfig, reportFactories ...ReportFactory) defaultSys
 	}
 	reports := make([]Report, len(reportFactories))
 	for i, fac := range reportFactories {
-		reports[i] = fac()
+		reports[i] = fac(5 * 60)
 	}
 	system := defaultSystem{
 		config: config,
