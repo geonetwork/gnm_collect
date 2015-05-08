@@ -25,7 +25,7 @@ func main() {
 	flag.StringVar(&targetServer, "target", "http://localhost:8080", "The url of the server to test.  Default [http://localhost:8080/geonetwork")
 	flag.StringVar(&username, "user", "", "The user name of a user that has Monitor privileges on the target server")
 	flag.StringVar(&password, "pass", "", "The user's password")
-	flag.StringVar(&out, "out", "./reports", "The directory to write the reports to.")
+	flag.StringVar(&out, "out", "./gnm_reports", "The directory to write the reports to.")
 	flag.Parse()
 	_, err := http.Get(fmt.Sprintf("http://localhost:%d/status", *port))
 

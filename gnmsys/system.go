@@ -53,7 +53,7 @@ func CreateSystem(config SysConfig, reportFactories ...ReportFactory) defaultSys
 		conf.Validate()
 	}
 	if config.OutputDir == "" || config.OutputDir == "." {
-		config.OutputDir = "reports"
+		config.OutputDir = "gnm_reports"
 	} else {
 		os.MkdirAll(config.OutputDir, os.FileMode(0755))
 	}
