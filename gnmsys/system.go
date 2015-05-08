@@ -47,10 +47,10 @@ func CreateSystem(config SysConfig, reportFactories ...ReportFactory) defaultSys
 	for _, conf := range config.SampleConfigs {
 		conf.Validate()
 	}
-	if config.OutputDir != "" {
-		os.MkdirAll(config.OutputDir, os.ModeDir)
+	if config.OutputDir == "" || config.OutputDir == "." {
+		config.OutputDir = "reports"
 	} else {
-		config.OutputDir = "."
+		os.MkdirAll(config.OutputDir, os.ModeDir)
 	}
 	options := cookiejar.Options{}
 	jar, err := cookiejar.New(&options)
@@ -63,9 +63,6 @@ func CreateSystem(config SysConfig, reportFactories ...ReportFactory) defaultSys
 	}
 	for i, fac := range reportFactories {
 		for j, sConf := range config.SampleConfigs {
-			if config.OutputDir != "" {
-				sConf.DirName = path.Join(config.OutputDir, sConf.DirName)
-			}
 			reports[(i * len(config.SampleConfigs)) + j] = fac(sConf)
 		}
 	}
@@ -164,9 +161,12 @@ func timeToUpdate(timeSeconds int64, report Report) bool {
 }
 
 func (sys defaultSystem) save() {
+	tmpDir := path.Join(os.TempDir(), "gnm_collect_tmp")
 	for _, report := range sys.reports {
-		report.Save()
+		report.Save(tmpDir)
 	}
+	os.RemoveAll(sys.config.OutputDir)
+	os.Rename(tmpDir, sys.config.OutputDir)
 	outputDir, _ := filepath.Abs(sys.config.OutputDir)
 	fmt.Printf("Reports have been written to disk: '%s'\n", outputDir)
 }

@@ -14,7 +14,7 @@ type PlotFactory func() *plot.Plot
 type Report interface {
 	GetUpdateInterval() time.Duration
 	Update(timeSeconds int64, metrics Json)
-	Save()
+	Save(reportDir string)
 }
 
 type LineGraphReport struct {
@@ -42,7 +42,7 @@ func (r LineGraphReport) Update(timeSeconds int64, metrics Json) {
 func (r LineGraphReport) GetUpdateInterval() time.Duration {
 	return r.sampleConfig.UpdateInterval
 }
-func (r LineGraphReport) Save() {
+func (r LineGraphReport) Save(reportDir string) {
 	report := r.report()
 	report.X.Label.Text = r.sampleConfig.Unit().String()
 	lines := make([]interface{}, len(r.collectors) * 2)
@@ -56,11 +56,11 @@ func (r LineGraphReport) Save() {
 	if err != nil {
 		panic(err)
 	}
-
+	outDir := path.Join(reportDir, r.sampleConfig.DirName)
 	if (r.sampleConfig.DirName != "") {
-		os.MkdirAll(r.sampleConfig.DirName, os.ModeDir)
+		os.MkdirAll(outDir, os.ModeDir)
 	}
-	outputFile := path.Join(r.sampleConfig.DirName, r.name) + ".png"
+	outputFile := path.Join(outDir, r.name) + ".png"
 	log.Printf("Saving %q to %q", r.name, outputFile)
 	if err := report.Save(r.width, r.height, outputFile); err != nil {
 		panic(err)
