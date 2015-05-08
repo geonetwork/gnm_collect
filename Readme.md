@@ -34,4 +34,8 @@ If this is done then you just need to do the following:
     go build github.com/geonetwork/gnm_collect
     ./gnm_collect -user admin -pass admin 
  
+You can run directly from the source (rather than compiled binary with:
+
+    go run src/github.com/geonetwork/gnm_collect/gnm_collect.go
+ 
 All dependencies are cloned and you can build from your GOPATH directory
