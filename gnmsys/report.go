@@ -69,9 +69,8 @@ func (r LineGraphReport) Save(titleModifier string, reportDir string) {
 		panic(err)
 	}
 	outDir := path.Join(reportDir, r.sampleConfig.DirName)
-	if (r.sampleConfig.DirName != "") {
-		os.MkdirAll(outDir, os.ModeDir)
-	}
+	os.MkdirAll(outDir, os.FileMode(0755))
+
 	outputFile := path.Join(outDir, r.GetFileName())
 	log.Printf("Saving %q to %q", r.name, outputFile)
 	if err := report.Save(r.width, r.height, outputFile); err != nil {

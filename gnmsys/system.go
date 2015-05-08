@@ -55,7 +55,7 @@ func CreateSystem(config SysConfig, reportFactories ...ReportFactory) defaultSys
 	if config.OutputDir == "" || config.OutputDir == "." {
 		config.OutputDir = "reports"
 	} else {
-		os.MkdirAll(config.OutputDir, os.ModeDir)
+		os.MkdirAll(config.OutputDir, os.FileMode(0755))
 	}
 	options := cookiejar.Options{}
 	jar, err := cookiejar.New(&options)
@@ -226,7 +226,7 @@ func (sys defaultSystem) save(titleModifier string) {
 				os.Remove(dest)
 				mustCopy := true
 				if _, err := os.Stat(dest); os.IsNotExist(err) {
-					os.MkdirAll(filepath.Dir(dest), os.ModeDir)
+					os.MkdirAll(filepath.Dir(dest), os.FileMode(0755))
 					err = os.Rename(file, dest)
 					log.Printf("Moved %s to %s\n", file, dest)
 					if err == nil {
