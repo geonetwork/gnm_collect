@@ -66,6 +66,41 @@ func loadReports() []gnmsys.ReportFactory {
 			CollectorFactories: []gnmsys.CollectorFactory{
 				gnmsys.NewFloatCollector("Non Heap Mem Used", "jvm", "memory", "non_heap_usage"),
 				gnmsys.NewFloatCollector("Heap Mem Used", "jvm", "memory", "heap_usage"),
-				gnmsys.NewFloatCollector("File Descriptor Usage", "jvm", "fd_usage")}}.ToRequestFactory()}
+				gnmsys.NewFloatCollector("File Descriptor Usage", "jvm", "fd_usage")}}.ToRequestFactory(),
+		gnmsys.LineReportFactoryBuilder{
+			Title: "Time Used by Garbage Collectors",
+			Filename: "garbage_collectors",
+			YAxis: "Milliseconds",
+			X: 12 * vg.Inch,
+			Y: 5 * vg.Inch,
+			CollectorFactories: []gnmsys.CollectorFactory{
+				gnmsys.NewFloatCollector("MarkSweep", "jvm", "garbage-collectors", "PS MarkSweep", "time"),
+				gnmsys.NewFloatCollector("Scavenge", "jvm", "garbage-collectors", "PS Scavenge", "time")}}.ToRequestFactory(),
+		gnmsys.LineReportFactoryBuilder{
+			Title: "CPU Load",
+			Filename: "cpu_load",
+			YAxis: "Load (%)",
+			X: 12 * vg.Inch,
+			Y: 5 * vg.Inch,
+			CollectorFactories: []gnmsys.CollectorFactory{
+				gnmsys.NewFloatCollector("System", "java.lang.management.OperatingSystemMXBean",
+					"Process_CPU_Load", "value"),
+				gnmsys.NewFloatCollector("System", "java.lang.management.OperatingSystemMXBean",
+					"Process_CPU_Load", "value"),
+				gnmsys.NewFloatCollector("Average Load", "java.lang.management.OperatingSystemMXBean",
+					"systemLoadAverage", "value")}}.ToRequestFactory(),
+		gnmsys.LineReportFactoryBuilder{
+			Title: "Thread states (%)",
+			Filename: "thread_states",
+			YAxis: "%",
+			X: 12 * vg.Inch,
+			Y: 5 * vg.Inch,
+			CollectorFactories: []gnmsys.CollectorFactory{
+				gnmsys.NewFloatCollector("Blocked", "jvm", "thread-states", "blocked"),
+				gnmsys.NewFloatCollector("New", "jvm", "thread-states", "new"),
+				gnmsys.NewFloatCollector("Timed Waiting", "jvm", "thread-states", "timed_waiting"),
+				gnmsys.NewFloatCollector("Waiting", "jvm", "thread-states", "waiting"),
+				gnmsys.NewFloatCollector("Terminated", "jvm", "thread-states", "terminated"),
+				gnmsys.NewFloatCollector("Runnable", "jvm", "thread-states", "runnable")}}.ToRequestFactory()}
 }
 

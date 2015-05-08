@@ -14,7 +14,7 @@ type PlotFactory func() *plot.Plot
 type Report interface {
 	GetUpdateInterval() time.Duration
 	Update(timeSeconds int64, metrics Json)
-	Save(reportDir string)
+	Save(titleModifier string, reportDir string)
 }
 
 type LineGraphReport struct {
@@ -42,9 +42,10 @@ func (r LineGraphReport) Update(timeSeconds int64, metrics Json) {
 func (r LineGraphReport) GetUpdateInterval() time.Duration {
 	return r.sampleConfig.UpdateInterval
 }
-func (r LineGraphReport) Save(reportDir string) {
+func (r LineGraphReport) Save(titleModifier string, reportDir string) {
 	report := r.report()
 	report.X.Label.Text = r.sampleConfig.Unit().String()
+	report.Title.Text = report.Title.Text + "(" + titleModifier + ")"
 	lines := make([]interface{}, len(r.collectors) * 2)
 	for i, coll := range r.collectors {
 		lines[i * 2] = coll.Name()

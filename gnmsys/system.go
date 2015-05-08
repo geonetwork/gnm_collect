@@ -92,78 +92,110 @@ func (sys defaultSystem) signalFlush() {
 	fmt.Printf("Saving/Flushing Reports to disk\n")
 	sys.signals <- flush
 }
+
+type systemState struct {
+	startTime time.Time
+	initializationComplete, mustLogin bool
+	urlStem string
+	loginCredentials url.Values
+}
+const timeFmt = "Start Time: 2006 Jan _2 15:04:05"
+func (state *systemState) initialize() {
+	if !state.initializationComplete {
+		state.initializationComplete = true
+		state.startTime = time.Now()
+	}
+}
 func (sys defaultSystem) Run() {
 
-	urlStem := sys.config.UrlStem
-
-	log.Printf("Start Login \n")
-	values := url.Values{"username":[]string{sys.config.Username}, "password":[]string{sys.config.Password}}
-
-	resp, _ := sys.client.PostForm(urlStem+"/j_spring_security_check", values)
-
-	log.Printf("Login response: %q '%v': \n\n", resp.Status, resp.StatusCode)
-	if resp.StatusCode > 300 {
-		loc, _ := resp.Location()
-		if loc == nil || !strings.Contains(loc.Path, "home") {
-			log.Printf("Error %v", loc.Path)
-			log.Fatalf("Error logging in: %q: '%v'\n", resp.Status, resp.StatusCode)
-		}
-	}
-
-	var timeSeconds int64 = 0
+	state := &systemState{
+		urlStem: sys.config.UrlStem,
+		loginCredentials: url.Values{"username":[]string{sys.config.Username}, "password":[]string{sys.config.Password}},
+		initializationComplete: false,
+		mustLogin: true}
 
 	for sig := range sys.signals {
 		switch sig {
 		case term:
 			goto shutdown
 		case flush:
-			sys.save()
+			sys.save(state.startTime.Format(timeFmt))
 		case tick:
-			resp, _ = sys.client.Get(sys.config.UrlStem+"/monitor/metrics")
-			log.Printf("Metrics response: %q '%v'\n", resp.Status, resp.StatusCode)
-			if resp.StatusCode > 300 {
-				log.Fatalf("Error obtaining metrics in: %q: '%v'\n", resp.Status, resp.StatusCode)
-			}
-
-			data, _ := ioutil.ReadAll(resp.Body)
-			var jsonData map[string]interface{}
-
-			err := json.Unmarshal(data, &jsonData)
-
-			if err != nil {
-				msg := "Metrics response was not valid json, this is likely because the login username/password are incorrect. %v\n\n"
-				fmt.Printf(msg, "")
-				log.Fatalf(msg, err.Error())
-			}
-			metrics := Json{jsonData}
-
-
-			for _, report := range sys.reports {
-				if timeToUpdate(timeSeconds, report) {
-					report.Update(timeSeconds, metrics)
-				}
-			}
-
-			timeSeconds++
+			sys.pollMetrics(state)
 		}
 	}
 
 	shutdown:
-	sys.save()
+	sys.save(state.startTime.Format(timeFmt))
 
 	fmt.Printf("\nSystem has Cleanly shutdown\n\n[DONE]\n")
 }
 
+func (sys defaultSystem) pollMetrics(state *systemState) {
+	defer func() {
+		if r := recover(); r != nil {
+			state.mustLogin = false
+		}
+	}()
+
+	if (state.mustLogin) {
+		log.Printf("Start Login \n")
+		resp, _ := sys.client.PostForm(state.urlStem+"/j_spring_security_check", state.loginCredentials)
+
+		log.Printf("Login response: %q '%v': \n\n", resp.Status, resp.StatusCode)
+		state.mustLogin = false
+		if resp.StatusCode > 300 {
+			loc, _ := resp.Location()
+			if loc == nil || !strings.Contains(loc.Path, "home") {
+				log.Panicf("Error %v", loc.Path)
+			}
+		}
+	}
+	state.initialize()
+
+	requestTime := time.Now().Unix() - state.startTime.Unix()
+	resp, _ := sys.client.Get(sys.config.UrlStem+"/monitor/metrics")
+	log.Printf("Metrics response: %q '%v'\n", resp.Status, resp.StatusCode)
+	if resp.StatusCode > 300 {
+		log.Panicf("Error obtaining metrics in: %q: '%v'\n", resp.Status, resp.StatusCode)
+	}
+
+	data, _ := ioutil.ReadAll(resp.Body)
+	var jsonData map[string]interface{}
+
+	err := json.Unmarshal(data, &jsonData)
+
+	if err != nil {
+		msg := "Metrics response was not valid json %v\n\n"
+		log.Panicf(msg, err.Error())
+	}
+	metrics := Json{jsonData}
+
+	for _, report := range sys.reports {
+		if timeToUpdate(int64(requestTime), report) {
+			report.Update(int64(requestTime), metrics)
+		}
+	}
+
+	if timeToWriteGraphs(requestTime, state.startTime) {
+		sys.save(state.startTime.Format(timeFmt))
+	}
+}
+
+func timeToWriteGraphs(requestTime int64, startTime time.Time) bool {
+	timeDiff := (time.Now().Second() - startTime.Second())
+	return requestTime > 60 && timeDiff == 0
+}
 func timeToUpdate(timeSeconds int64, report Report) bool {
 	interval := int64(report.GetUpdateInterval())
 	timeNano := timeSeconds * int64(time.Second)
 	return timeNano % interval == 0
 }
 
-func (sys defaultSystem) save() {
+func (sys defaultSystem) save(titleModifier string) {
 	tmpDir := path.Join(os.TempDir(), "gnm_collect_tmp")
 	for _, report := range sys.reports {
-		report.Save(tmpDir)
+		report.Save(titleModifier, tmpDir)
 	}
 	os.RemoveAll(sys.config.OutputDir)
 	os.Rename(tmpDir, sys.config.OutputDir)
