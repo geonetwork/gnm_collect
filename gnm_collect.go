@@ -5,6 +5,7 @@ import (
 	"os"
 	"log"
 	"github.com/gonum/plot/vg"
+	"time"
 )
 
 type Listener interface {
@@ -12,7 +13,12 @@ type Listener interface {
 }
 
 func main() {
-	configureLogs()
+	f, err := os.OpenFile("gnm_collect.log", os.O_RDWR | os.O_CREATE | os.O_APPEND, 0666)
+	if err != nil {
+		log.Fatalf("error opening file: %v", err)
+	}
+	defer f.Close()
+	log.SetOutput(f)
 
 	config := loadSystemConfig()
 	reports := loadReports()
@@ -29,7 +35,14 @@ func loadSystemConfig() gnmsys.SysConfig {
 	return gnmsys.SysConfig{
 		UrlStem: "http://tc-geocat.dev.bgdi.ch/geonetwork",
 		Username: "testjesse",
-		Password: "testjesse"}
+		Password: "testjesse",
+		OutputDir: "./reports",
+		SampleConfigs: []gnmsys.SampleConfig{
+			gnmsys.SampleConfig{Name: "Last Five Minutes", DirName: "five_minutes", MaxSamples: 5 * 60, UpdateInterval: time.Second},
+			gnmsys.SampleConfig{Name: "Last Five Hours", DirName: "five_hours", MaxSamples: 5 * 60, UpdateInterval: time.Minute},
+			gnmsys.SampleConfig{Name: "Last Five Days", DirName: "five_days", MaxSamples: 5 * 24, UpdateInterval: time.Hour},
+			gnmsys.SampleConfig{Name: "Last Five Months", DirName: "five_months", MaxSamples: 5 * 30, UpdateInterval: 24 * time.Hour},
+		}}
 }
 
 func loadReports() []gnmsys.ReportFactory {
@@ -56,11 +69,3 @@ func loadReports() []gnmsys.ReportFactory {
 				gnmsys.NewFloatCollector("File Descriptor Usage", "jvm", "fd_usage")}}.ToRequestFactory()}
 }
 
-func configureLogs() {
-	f, err := os.OpenFile("gnm_collect.log", os.O_RDWR | os.O_CREATE | os.O_APPEND, 0666)
-	if err != nil {
-		log.Fatalf("error opening file: %v", err)
-	}
-	defer f.Close()
-	log.SetOutput(f)
-}

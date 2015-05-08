@@ -10,6 +10,9 @@ import (
 	"fmt"
 	"io/ioutil"
 	"encoding/json"
+	"os"
+	"path"
+	"path/filepath"
 )
 
 type System interface {
@@ -27,7 +30,11 @@ const (
 	tick
 )
 type SysConfig struct {
-	UrlStem, Username, Password string
+	UrlStem,
+	Username,
+	Password,
+	OutputDir string
+	SampleConfigs []SampleConfig
 }
 type defaultSystem struct {
 	config SysConfig
@@ -37,14 +44,30 @@ type defaultSystem struct {
 }
 
 func CreateSystem(config SysConfig, reportFactories ...ReportFactory) defaultSystem {
+	for _, conf := range config.SampleConfigs {
+		conf.Validate()
+	}
+	if config.OutputDir != "" {
+		os.MkdirAll(config.OutputDir, os.ModeDir)
+	} else {
+		config.OutputDir = "."
+	}
 	options := cookiejar.Options{}
 	jar, err := cookiejar.New(&options)
 	if err != nil {
 		log.Fatal(err)
 	}
-	reports := make([]Report, len(reportFactories))
+	reports := make([]Report, len(reportFactories) * len(config.SampleConfigs))
+	if (len(reports) == 0) {
+		log.Fatalf("No reports are configured\nReport Factories: %d\nSampleConfigs: %v\n", len(reportFactories), config.SampleConfigs)
+	}
 	for i, fac := range reportFactories {
-		reports[i] = fac(5 * 60)
+		for j, sConf := range config.SampleConfigs {
+			if config.OutputDir != "" {
+				sConf.DirName = path.Join(config.OutputDir, sConf.DirName)
+			}
+			reports[(i * len(config.SampleConfigs)) + j] = fac(sConf)
+		}
 	}
 	system := defaultSystem{
 		config: config,
@@ -90,7 +113,7 @@ func (sys defaultSystem) Run() {
 		}
 	}
 
-	var x int64 = 0
+	var timeSeconds int64 = 0
 
 	for sig := range sys.signals {
 		switch sig {
@@ -119,22 +142,31 @@ func (sys defaultSystem) Run() {
 
 
 			for _, report := range sys.reports {
-				report.Update(x, metrics)
+				if timeToUpdate(timeSeconds, report) {
+					report.Update(timeSeconds, metrics)
+				}
 			}
 
-			x++
+			timeSeconds++
 		}
 	}
 
 	shutdown:
-		sys.save()
+	sys.save()
 
 	fmt.Printf("\nSystem has Cleanly shutdown\n\n[DONE]\n")
+}
+
+func timeToUpdate(timeSeconds int64, report Report) bool {
+	interval := int64(report.GetUpdateInterval())
+	timeNano := timeSeconds * int64(time.Second)
+	return timeNano % interval == 0
 }
 
 func (sys defaultSystem) save() {
 	for _, report := range sys.reports {
 		report.Save()
 	}
-	fmt.Printf("Reports have been written to disk\n")
+	outputDir, _ := filepath.Abs(sys.config.OutputDir)
+	fmt.Printf("Reports have been written to disk: '%s'\n", outputDir)
 }

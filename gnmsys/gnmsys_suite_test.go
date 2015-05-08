@@ -1,4 +1,4 @@
-package tests
+package gnmsys
 import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-func TestAddPoint(t *testing.T) {
+func TestPrivateGnmSysApi(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "gnmsys Test Suite")
+	RunSpecs(t, "gnmsys Private API Test Suite")
 }
