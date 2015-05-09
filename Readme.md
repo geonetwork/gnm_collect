@@ -1,4 +1,5 @@
-h1. Summary
+Summary
+=======
 
 A standalone application/daemon for recording the metrics output from Geonetwork and generating tables and graphs from the recorded data.
 
@@ -8,20 +9,23 @@ If you have the binary an example of running the application is as follows:
 
     gnm_collect -target http://localhost:8989/gn -logging=true -user=monitor -pass=monpas -out=gnm-reports
 
-h2. Terminal Mode
+Command-line Interface
+----------------------
 
 By default the system is ran in terminal mode.  In this case `?` followed by Enter/Return will show the available commands.  For example:
 
     q - Write reports to disk and exit the application
     f/s - Write/Flush reports to disk
     
-h2. Web API
+Web API
+-------
 
 The -port=... parameter can be used to set the web server port.  By default the server is started on port 10100.  
 
 The main page is:  http://localhost:10100/index.html (or just http://localhost:10100/)
 
-h1. Build from Source
+Build from Source
+=================
 You can use the go get commands to build from sources.  To do this you need to install:
 
 * Go
