@@ -252,8 +252,9 @@ func (sys defaultSystem) save(titleModifier string) {
 					err = os.Rename(file, dest)
 					log.Printf("Moved %s to %s\n", file, dest)
 					if err == nil {
-						log.Printf("Error occurred when attempting to move %s to %s: %v\n", file, dest, err)
 						mustCopy = false
+					} else {
+						log.Printf("Error occurred when attempting to move %s to %s: %q\n", file, dest, err.Error())
 					}
 				}
 				if mustCopy {
@@ -271,17 +272,17 @@ func (sys defaultSystem) save(titleModifier string) {
 }
 
 func copy(source, dest string) error {
-	sFile, err := os.Open(source)
+	sFile, err := os.Create(source)
 
 	if err != nil {
-		log.Printf("Failed to open source file %s in copy@sytem.go")
+		log.Printf("Failed to open/create source file %s in copy@sytem.go: %q", source, err.Error())
 		return err
 	}
 	defer sFile.Close()
 
-	dFile, err := os.Open(dest)
+	dFile, err := os.Create(dest)
 	if err != nil {
-		log.Printf("Failed to open dest file %s in copy@sytem.go")
+		log.Printf("Failed to open/create dest file %s in copy@sytem.go: %q", dest, err.Error())
 		return err
 	}
 	defer dFile.Close()
