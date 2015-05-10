@@ -14,6 +14,7 @@ import (
 	"path"
 	"path/filepath"
 	"io"
+	"github.com/gonum/plot"
 )
 
 type System interface {
@@ -49,9 +50,6 @@ type defaultSystem struct {
 }
 
 func CreateSystem(config SysConfig, reportFactories ...ReportFactory) defaultSystem {
-	for _, conf := range config.SampleConfigs {
-		conf.Validate()
-	}
 	if config.OutputDir == "" || config.OutputDir == "." {
 		config.OutputDir = "gnm_reports"
 	} else {
@@ -77,9 +75,25 @@ func CreateSystem(config SysConfig, reportFactories ...ReportFactory) defaultSys
 		signals: make(chan SystemSignal),
 		client: http.Client{Jar: jar}}
 
+	system.validate()
+
 	go loop(system.signals)
 
 	return system
+}
+
+func (sys defaultSystem) validate() {
+	for _, conf := range sys.config.SampleConfigs {
+		conf.Validate()
+	}
+
+	if err := ioutil.WriteFile(filepath.Join(sys.config.OutputDir, "probe"), []byte("t"), os.FileMode(0664)); err != nil {
+		log.Fatalf("Do not have write permissions to %s\n", sys.config.OutputDir)
+	}
+
+	if err, _ := plot.New(); err != nil {
+		log.Fatalf("Directory with font files is missing.  Copy https://github.com/gonum/plot/tree/master/vg/fonts to same directory as the executable")
+	}
 }
 
 func loop(signals chan <- SystemSignal) {
@@ -148,6 +162,7 @@ func (sys defaultSystem) Run() {
 
 	fmt.Printf("\nSystem has Cleanly shutdown\n\n[DONE]\n")
 }
+
 
 func (sys defaultSystem) pollMetrics(state *systemState) {
 	defer func() {
@@ -231,28 +246,39 @@ func (sys defaultSystem) save(titleModifier string) {
 					err = os.Rename(file, dest)
 					log.Printf("Moved %s to %s\n", file, dest)
 					if err == nil {
+						log.Printf("Error occurred when attempting to move %s to %s: %v\n", file, dest, err)
 						mustCopy = false
 					}
 				}
 				if mustCopy {
-					copy(file, dest)
-					log.Printf("Copied %s to %s\n", file, dest)
-					os.Remove(file)
+					err = copy(file, dest)
+					if err == nil {
+						os.Remove(file)
+					}
 				}
 			}
 		}
 		return nil
 	})
+
+	os.RemoveAll(tmpDir)
 }
 
 func copy (source, dest string) {
 	sFile, err := os.Open(source)
+
 	if err != nil {
+		log.Printf("Failed to open source file %s in copy@sytem.go")
+	} else {
 		defer sFile.Close()
 		dFile, err := os.Open(dest)
 		if err != nil {
+			log.Printf("Failed to open dest file %s in copy@sytem.go")
+		} else {
 			defer dFile.Close()
-			io.Copy(dFile, sFile)
+			if err = io.Copy(dFile, sFile); err != nil {
+				log.Printf("Error occurred trying to copy %s to %s: %v\n", source, dest, err)
+			}
 		}
 	}
 }

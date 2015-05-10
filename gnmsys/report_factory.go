@@ -5,6 +5,9 @@ import (
 	"time"
 	"log"
 	"github.com/geonetwork/gnm_collect/gnmsys/unit"
+	"io/ioutil"
+	"path/filepath"
+	"os"
 )
 
 type SampleConfig struct {
