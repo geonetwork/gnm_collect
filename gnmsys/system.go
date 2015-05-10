@@ -91,8 +91,14 @@ func (sys defaultSystem) validate() {
 		log.Fatalf("Do not have write permissions to %s\n", sys.config.OutputDir)
 	}
 
-	if err, _ := plot.New(); err != nil {
-		log.Fatalf("Directory with font files is missing.  Copy https://github.com/gonum/plot/tree/master/vg/fonts to same directory as the executable")
+	if _, err := plot.New(); err != nil {
+		fmt.Printf("Error creating a test graph %q\n", err.Error())
+		msg := "A likely problem is that the directory with font files cannot be found." +
+		"  Copy https://github.com/gonum/plot/tree/master/vg/fonts to same directory as the executable"
+		fmt.Printf(msg)
+
+		log.Printf("Error creating a test graph %q\n", err.Error())
+		log.Fatalf(msg)
 	}
 }
 
@@ -264,21 +270,26 @@ func (sys defaultSystem) save(titleModifier string) {
 	os.RemoveAll(tmpDir)
 }
 
-func copy (source, dest string) {
+func copy(source, dest string) error {
 	sFile, err := os.Open(source)
 
 	if err != nil {
 		log.Printf("Failed to open source file %s in copy@sytem.go")
-	} else {
-		defer sFile.Close()
-		dFile, err := os.Open(dest)
-		if err != nil {
-			log.Printf("Failed to open dest file %s in copy@sytem.go")
-		} else {
-			defer dFile.Close()
-			if err = io.Copy(dFile, sFile); err != nil {
-				log.Printf("Error occurred trying to copy %s to %s: %v\n", source, dest, err)
-			}
-		}
+		return err
 	}
+	defer sFile.Close()
+
+	dFile, err := os.Open(dest)
+	if err != nil {
+		log.Printf("Failed to open dest file %s in copy@sytem.go")
+		return err
+	}
+	defer dFile.Close()
+
+	if _, err = io.Copy(dFile, sFile); err != nil {
+		log.Printf("Error occurred trying to copy %s to %s: %v\n", source, dest, err)
+		return err
+	}
+
+	return nil
 }

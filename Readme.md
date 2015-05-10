@@ -36,10 +36,18 @@ If this is done then you just need to do the following:
 
     go get github.com/geonetwork/gnm_collect
     go build github.com/geonetwork/gnm_collect
-    ./gnm_collect -user admin -pass admin 
+    ./bin/gnm_collect -user admin -pass admin 
  
 You can run directly from the source (rather than compiled binary with:
 
     go run src/github.com/geonetwork/gnm_collect/gnm_collect.go
  
 All dependencies are cloned and you can build from your GOPATH directory
+
+Distribution
+============
+
+To distribute this application, clone and build the application as described in _Build from Source_.  For the distribution bundle copy
+`github.com/gonum/plot/vg/fonts` along with the bin/gnm_collect binary
+
+    

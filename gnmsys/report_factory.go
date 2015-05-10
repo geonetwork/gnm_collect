@@ -5,9 +5,6 @@ import (
 	"time"
 	"log"
 	"github.com/geonetwork/gnm_collect/gnmsys/unit"
-	"io/ioutil"
-	"path/filepath"
-	"os"
 )
 
 type SampleConfig struct {
@@ -15,10 +12,10 @@ type SampleConfig struct {
 	MaxSamples int
 	UpdateInterval time.Duration
 }
-func(conf SampleConfig) Unit() unit.Unit {
+func (conf SampleConfig) Unit() unit.Unit {
 	return unit.FindUnit(conf.UpdateInterval)
 }
-func(conf SampleConfig) Validate() {
+func (conf SampleConfig) Validate() {
 	if conf.MaxSamples < 1 {
 		log.Fatalf("Sample Config %q is invalid. MaxSamples must be > 0: %d", conf.Name, conf.MaxSamples)
 	}
