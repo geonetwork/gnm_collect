@@ -35,9 +35,11 @@ You can use the go get commands to build from sources.  To do this you need to i
 If this is done then you just need to do the following:
 
     go get github.com/geonetwork/gnm_collect
-    go build github.com/geonetwork/gnm_collect
-    ./bin/gnm_collect -user admin -pass admin 
  
+This will clone gnm_collect and all dependencies as well as build a binary for gnm_collect.  The binary can be executed as follows:
+
+    ./bin/gnm_collect -user admin -pass admin  
+
 You can run directly from the source (rather than compiled binary with:
 
     go run src/github.com/geonetwork/gnm_collect/gnm_collect.go
@@ -47,7 +49,15 @@ All dependencies are cloned and you can build from your GOPATH directory
 Distribution
 ============
 
-To distribute this application, clone and build the application as described in _Build from Source_.  For the distribution bundle copy
-`github.com/gonum/plot/vg/fonts` along with the bin/gnm_collect binary
+To distribute this application, clone and build the application as described in _Build from Source_.  
+To create a distribution bundle do:
+
+Linux example:
+
+    mkdir gnm_collect_1.0    
+    cp bin/gnm_collect gnm_collect_1.0/
+    cp -r src/github.com/gonum/plot/vg/fonts gnm_collect_1.0/
+    tar czf gnm_collect_1.0.tar.gz gnm_collect_1.0/  
+    rm -rf gnm_collect_1.0 
 
     
