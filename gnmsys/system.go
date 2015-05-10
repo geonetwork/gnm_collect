@@ -87,9 +87,11 @@ func (sys defaultSystem) validate() {
 		conf.Validate()
 	}
 
-	if err := ioutil.WriteFile(filepath.Join(sys.config.OutputDir, "probe"), []byte("t"), os.FileMode(0664)); err != nil {
+	probeFile := filepath.Join(sys.config.OutputDir, "probe")
+	if err := ioutil.WriteFile(probeFile, []byte("t"), os.FileMode(0664)); err != nil {
 		log.Fatalf("Do not have write permissions to %s\n", sys.config.OutputDir)
 	}
+	os.Remove(probeFile)
 
 	if _, err := plot.New(); err != nil {
 		fmt.Printf("Error creating a test graph %q\n", err.Error())
