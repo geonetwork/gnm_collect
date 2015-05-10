@@ -235,7 +235,7 @@ func timeToUpdate(timeSeconds int64, report Report) bool {
 }
 
 func (sys defaultSystem) save(titleModifier string) {
-	tmpDir := path.Join(os.TempDir(), "gnm_collect_tmp")
+	tmpDir := path.Join(sys.config.OutputDir, "tmp")
 	for _, report := range sys.reports {
 		report.Save(titleModifier, tmpDir)
 	}
@@ -246,22 +246,17 @@ func (sys defaultSystem) save(titleModifier string) {
 			if err == nil {
 				dest := path.Join(sys.config.OutputDir, rel)
 				os.Remove(dest)
-				mustCopy := true
 				if _, err := os.Stat(dest); os.IsNotExist(err) {
 					os.MkdirAll(filepath.Dir(dest), os.FileMode(0755))
 					err = os.Rename(file, dest)
-					log.Printf("Moved %s to %s\n", file, dest)
 					if err == nil {
-						mustCopy = false
+						log.Printf("Moved %s to %s\n", file, dest)
 					} else {
-						log.Printf("Error occurred when attempting to move %s to %s: %q\n", file, dest, err.Error())
+						log.Printf("Error occurred when attempting to move %s to %s:\n%q\n", file, dest, err.Error())
+						copyMove(file, dest)
 					}
-				}
-				if mustCopy {
-					err = copy(file, dest)
-					if err == nil {
-						os.Remove(file)
-					}
+				} else {
+					copyMove(file, dest)
 				}
 			}
 		}
@@ -271,26 +266,25 @@ func (sys defaultSystem) save(titleModifier string) {
 	os.RemoveAll(tmpDir)
 }
 
-func copy(source, dest string) error {
+func copyMove(source, dest string){
 	sFile, err := os.Create(source)
 
 	if err != nil {
-		log.Printf("Failed to open/create source file %s in copy@sytem.go: %q", source, err.Error())
-		return err
+		log.Printf("Failed to open/create source file %s in copy@sytem.go:\n%q\n", source, err.Error())
+		return
 	}
 	defer sFile.Close()
 
 	dFile, err := os.Create(dest)
 	if err != nil {
-		log.Printf("Failed to open/create dest file %s in copy@sytem.go: %q", dest, err.Error())
-		return err
+		log.Printf("Failed to open/create dest file %s in copy@sytem.go:\n%q\n", dest, err.Error())
+		return
 	}
 	defer dFile.Close()
 
 	if _, err = io.Copy(dFile, sFile); err != nil {
-		log.Printf("Error occurred trying to copy %s to %s: %v\n", source, dest, err)
-		return err
+		log.Printf("Error occurred trying to copy %s to %s:\n%q\n", source, dest, err.Error())
+		return
 	}
-
-	return nil
+	os.Remove(source)
 }
