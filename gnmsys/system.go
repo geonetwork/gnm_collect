@@ -175,6 +175,9 @@ func (sys defaultSystem) Run() {
 func (sys defaultSystem) pollMetrics(state *systemState) {
 	defer func() {
 		if r := recover(); r != nil {
+			msg := "Recovering from Panic: %v\n"
+			fmt.Printf(msg, r)
+			log.Printf(msg, r)
 			state.mustLogin = false
 		}
 	}()
@@ -215,7 +218,9 @@ func (sys defaultSystem) pollMetrics(state *systemState) {
 	}
 	metrics := Json{jsonData}
 
-	for _, report := range sys.reports {
+	for i, report := range sys.reports {
+		log.Printf("Check if report should be updated: %q\n", report.GetName())
+		log.Printf("report %d of %d\n", i, len(sys.reports))
 		if timeToUpdate(int64(requestTime), report) {
 			report.Update(int64(requestTime), metrics)
 		}

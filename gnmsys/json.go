@@ -43,6 +43,8 @@ func (obj Json) resolveFloat(path ...string) float64 {
 		return float64(v)
 	case int64:
 		return float64(v)
+	case string:
+		return -1
 	default:
 		return v.(float64)
 	}

@@ -45,6 +45,8 @@ func (r LineGraphReport) GetFileName() string {
 	return r.name + ".png"
 }
 func (r LineGraphReport) Update(timeSeconds int64, metrics Json) {
+	log.Printf("Updating report: %q\n", r.GetName())
+
 	for _, coll := range r.collectors {
 		coll.AddSample(r.sampleConfig.Unit().ConvertSeconds(timeSeconds), metrics)
 	}
