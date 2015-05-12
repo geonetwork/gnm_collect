@@ -15,6 +15,7 @@ import (
 	"path/filepath"
 	"io"
 	"github.com/gonum/plot"
+	"runtime/debug"
 )
 
 type System interface {
@@ -178,6 +179,7 @@ func (sys defaultSystem) pollMetrics(state *systemState) {
 			msg := "Recovering from Panic: %v\n"
 			fmt.Printf(msg, r)
 			log.Printf(msg, r)
+			debug.PrintStack()
 			state.mustLogin = false
 		}
 	}()
@@ -222,13 +224,24 @@ func (sys defaultSystem) pollMetrics(state *systemState) {
 		log.Printf("Check if report should be updated: %q\n", report.GetName())
 		log.Printf("report %d of %d\n", i, len(sys.reports))
 		if timeToUpdate(int64(requestTime), report) {
-			report.Update(int64(requestTime), metrics)
+			safeUpdateReport(report, metrics, requestTime)
 		}
 	}
 
 	if timeToWriteGraphs(requestTime, state.startTime) {
 		sys.save(state.startTime.Format(timeFmt))
 	}
+}
+
+func safeUpdateReport(report Report, metrics Json, requestTime int64) {
+	defer func() {
+		if r := recover(); r != nil {
+			msg := "Recovering from error in safeUpdateReport\n    Report %q\n    Metrics: %v\n    Error %v\n"
+			fmt.Printf(msg, report.GetName(), metrics.Data, r)
+			log.Printf(msg, r)
+		}
+	}()
+	report.Update(requestTime, metrics)
 }
 
 func timeToWriteGraphs(requestTime int64, startTime time.Time) bool {
