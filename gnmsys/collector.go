@@ -9,6 +9,7 @@ type CollectorFactory func(capacity int) Collector
 type Collector interface {
 	Name() string
 	AddSample(time int64, metrics Json)
+	AddXYSample(x,y float64)
 	GetXYs() plotter.XYs
 }
 
@@ -33,9 +34,13 @@ func NewFloatCollector(name string, jsonPath ...string) CollectorFactory {
 
 func (c *FloatCollector) AddSample(time int64, metrics Json) {
 	y := metrics.resolveFloat(c.jsonPath...)
-	log.Printf("Adding (%v, %v) to %q\n", time, y, c.name)
+	c.AddXYSample(float64(time), y)
+}
+
+func (c *FloatCollector) AddXYSample(x,y float64) {
+	log.Printf("Adding (%v, %v) to %q\n", x, y, c.name)
 	xy := make(plotter.XYs, 1)
-	xy[0].X = float64(time)
+	xy[0].X = x
 	xy[0].Y = y
 
 	xys := c.xys
@@ -45,7 +50,7 @@ func (c *FloatCollector) AddSample(time int64, metrics Json) {
 	}
 	c.xys = append(xys, xy[0])
 
-	log.Printf("Added (%v, %v) to %q.  Number of samples: %v\n", time, y, c.name, len(c.xys))
+	log.Printf("Added (%v, %v) to %q.  Number of samples: %v\n", x, y, c.name, len(c.xys))
 }
 
 func (c FloatCollector) GetXYs() plotter.XYs {

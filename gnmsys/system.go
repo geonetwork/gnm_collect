@@ -172,7 +172,6 @@ func (sys defaultSystem) Run() {
 	fmt.Printf("\nSystem has Cleanly shutdown\n\n[DONE]\n")
 }
 
-
 func (sys defaultSystem) pollMetrics(state *systemState) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -200,7 +199,8 @@ func (sys defaultSystem) pollMetrics(state *systemState) {
 	}
 	state.initialize()
 
-	requestTime := time.Now().Unix() - state.startTime.Unix()
+	now := time.Now().Unix()
+	requestTime := now - state.startTime.Unix()
 	metricsUrl := sys.config.UrlStem+"/monitor/metrics"
 	log.Printf("Making Metrics request %s", metricsUrl)
 	resp, _ := sys.client.Get(metricsUrl)
@@ -286,7 +286,7 @@ func (sys defaultSystem) save(titleModifier string) {
 	os.RemoveAll(tmpDir)
 }
 
-func copyMove(source, dest string){
+func copyMove(source, dest string) {
 	sFile, err := os.Create(source)
 
 	if err != nil {

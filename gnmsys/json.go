@@ -5,11 +5,12 @@ type Json struct {
 }
 
 func (obj Json) Obj(key string) Json {
-	switch v := obj.Data[key].(type) {
-		case map[string]interface{}:
-		return Json{v}
+	v := obj.Data[key]
+	switch v.(type) {
+		case map[string]interface{} :
+		return Json{v.(map[string]interface{})}
 		default:
-		return Json{map[string]interface{}}
+		return Json{}
 	}
 }
 
@@ -22,7 +23,13 @@ func (obj Json) String(key string) string {
 	}
 }
 func (obj Json) Float(key string) float64 {
-	return obj.Data[key].(float64)
+	switch v := obj.Data[key].(type) {
+		case float64:
+		return v
+		default:
+		return 0
+	}
+
 }
 func (obj Json) resolve(path ...string) interface {} {
 	seg := path[0]
