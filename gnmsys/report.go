@@ -7,7 +7,6 @@ import (
 	"os"
 	"log"
 	"time"
-	"path/filepath"
 	"fmt"
 	"io"
 	"encoding/json"
@@ -86,9 +85,9 @@ func (r LineGraphReport) Save(titleModifier string, reportDir string) {
 		panic(err)
 	}
 
-	stateFile, err := os.Create(stateFilePath(reportDir, r.name))
+	stateFile, err := os.Create(r.stateFilePath(reportDir))
 	if err != nil {
-		log.Printf("ERROR: unable to save report state for %s, %s", stateFile.Name(), err.Error())
+		log.Printf("ERROR: unable to save report state for %s, %s", r.stateFilePath(outDir), err.Error())
 		return;
 	}
 	defer stateFile.Close()
@@ -108,7 +107,7 @@ func (r LineGraphReport) saveState(stateFile io.Writer) {
 		} else {
 			serialized.Write(marshalledData)
 		}
-		if i + 1 < len (r.collectors) {
+		if i + 1 < len(r.collectors) {
 			serialized.WriteString(",")
 		}
 	}
@@ -121,16 +120,18 @@ func (r LineGraphReport) saveState(stateFile io.Writer) {
 	}
 }
 
-func stateFilePath(reportDir, name string) string {
-	return filepath.Join(reportDir, name + ".json")
+func (r LineGraphReport) stateFilePath(reportDir string) string {
+	return path.Join(reportDir, r.sampleConfig.DirName, r.name + ".json")
 }
 
 func (r LineGraphReport) Load(reportDir string) {
-	stateFile, err := os.Open(stateFilePath(reportDir, r.name))
+	stateFile, err := os.Open(r.stateFilePath(reportDir))
 
 	if err == nil || !os.IsNotExist(err) {
 		defer stateFile.Close()
+		log.Printf("Loading state from %s\n", r.name)
 		r.doLoad(r.name, stateFile)
+		log.Printf("Finished loading state from %s\n", r.name)
 	}
 }
 
@@ -138,7 +139,7 @@ func (r LineGraphReport) doLoad(name string, stateFile io.Reader) {
 	data, err := ioutil.ReadAll(stateFile)
 
 	if err != nil {
-		msg := fmt.Sprintf("Failed to load state data from file: %v\n", err.Error())
+		msg := fmt.Sprintf("Failed to load state data from file: %v. Error %v\n", name, err.Error())
 		fmt.Printf(msg)
 		log.Printf(msg)
 	} else {

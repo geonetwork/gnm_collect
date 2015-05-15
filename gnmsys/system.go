@@ -155,6 +155,10 @@ func (sys defaultSystem) Run() {
 		initializationComplete: false,
 		mustLogin: true}
 
+	for _, rep := range sys.reports {
+		rep.Load(sys.config.OutputDir)
+	}
+
 	for sig := range sys.signals {
 		switch sig {
 		case term:
@@ -224,7 +228,7 @@ func (sys defaultSystem) pollMetrics(state *systemState) {
 		log.Printf("Check if report should be updated: %q\n", report.GetName())
 		log.Printf("report %d of %d\n", i, len(sys.reports))
 		if timeToUpdate(int64(requestTime), report) {
-			safeUpdateReport(report, metrics, requestTime)
+			safeUpdateReport(report, metrics, now)
 		}
 	}
 
